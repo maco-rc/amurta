@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeZone};
+use chrono::{DateTime, TimeZone, Local};
 use colored::Colorize;
 use regex::Regex;
 use std::{fs::File, path::PathBuf, process::Command, str};
@@ -47,30 +47,27 @@ impl cleaner for Output {
     }
 }
 
-struct DockerInfo<'a, Tz>
-where
-    Tz: TimeZone,
+struct DockerInfo<'a>
 {
     container_id: String,
     image: String,
     command: Commands<'a>,
-    created: DateTime<Tz>,
+    created: DateTime<Local>,
     status: Status,
     ports: u16,
     name: String,
 }
 
-impl<'a, Tz: TimeZone> DockerInfo<'a, Tz> {
+impl<'a> DockerInfo<'a> {
     fn new(
-        &self,
         container: String,
         image: String,
         command: Commands<'a>,
-        date: DateTime<Tz>,
+        date: DateTime<Local>,
         status: Status,
         port: u16,
         name: String,
-    ) -> DockerInfo<Tz> {
+    ) -> DockerInfo<'a> {
         DockerInfo {
             container_id: container,
             image: image,
@@ -90,11 +87,14 @@ impl Docker {
         for f in flags {
             match f {
                 "l" | "-l" | "--list" => {
+                    
                     let mut info = Command::new("docker")
                         .arg("ps")
                         .arg("--all")
                         .output()
                         .expect("ls command failed to start");
+
+                    let date = chrono::offset::Local::now();
 
                     let output = match str::from_utf8(&info.stdout) {
                         Ok(x) => x,
@@ -102,9 +102,11 @@ impl Docker {
                     };
 
                     let images: Vec<&str> = Output::clean_newline(&output);
+
                     for i in images {
                         let image = Output::clean_whitespace(&i);
-                        println!("{:?}", image);
+
+                        
                     }
                 }
                 _ => panic!(),
